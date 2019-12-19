@@ -1,0 +1,95 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="Bookmark" href="/favicon.ico" >
+    <link rel="Shortcut Icon" href="/favicon.ico" />
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="hui_lib/html5shiv.js"></script>
+    <script type="text/javascript" src="hui_lib/respond.min.js"></script>
+    <![endif]-->
+    <link rel="stylesheet" type="text/css" href="hui_admin_css/H-ui.admin.css" />
+    <link rel="stylesheet" type="text/css" href="hui_admin_css/chat.css" />
+    <link rel="stylesheet" type="text/css" href="hui_css/H-ui.css" />
+    <link rel="stylesheet" type="text/css" href="hui_lib/Hui-iconfont/1.0.8/iconfont.css" />
+    <link rel="stylesheet" type="text/css" href="hui_admin_skin/default/skin.css" id="skin" />
+    <link rel="stylesheet" type="text/css" href="hui_admin_css/style.css" />
+    <!--[if IE 6]>
+    <script type="text/javascript" src="hui_lib/DD_belatedPNG_0.0.8a-min.js" ></script>
+    <script>DD_belatedPNG.fix('*');</script>
+    <![endif]-->
+    <script type="text/javascript" src="api_common_js/jquery/jquery-1.9.1.min.js"></script>
+    <title>维雅后台登录</title>
+</head><body>
+<input type="hidden" id="TenantId" name="TenantId" value="" />
+<!--<div class="header"></div>
+<div class="weiya_logo">
+    <img src="api_common_img/weiya_logo.png" alt="">
+</div>-->
+<div class="loginWraper">
+    <div class="loginBox">
+        <h2 class="welcome">欢迎登录</h2>
+        <script type="text/javascript">
+            var login_success_callback_private = function(){
+                location.reload();
+            };
+            var register_success_callback_private = function(){
+                location.reload();
+            };
+        </script>
+        {include file="../../api/public/vue/components/login.html" /}
+    </div>
+</div>
+<!--<footer class="f24 bottom_footer">
+    <a href="http://www.miitbeian.gov.cn">
+        <span class="icp_icon">Copyright@广东美尚网络科技有限公司</span>
+        <span class="icp_icon">粤ICP备18130945号-1</span>
+    </a>
+</footer>-->
+<script type="text/javascript" src="hui_lib/layer/2.4/layer.js"></script>
+<script type="text/javascript" src="hui_js/H-ui.js"></script>
+<script type="text/javascript" src="hui_admin_js/H-ui.admin.js"></script>
+<script type="text/javascript" src="hui_lib/jquery.contextmenu/jquery.contextmenu.r2.js"></script>
+<!--自定义js-->
+<script type="text/javascript" src="api_common_js/public.js"></script>
+<script type="text/javascript" src="api_common_js/common.js"></script>
+<script type="text/javascript" src="api_common_js/admin/dialog.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/babel-standalone/6.22.1/babel.min.js"></script>
+<!-- 用于vue组件通信 -->
+<script type="text/javascript">
+    var bus = new Vue();
+</script>
+<script type="text/babel">
+    var domain = '{:request()->domain()}/';
+    var uploads = domain + 'uploads/';
+    var module = domain + '{:request()->module()}/';
+    var controller = module + '{:request()->controller()}/';
+    var action = controller + '{:request()->action()}';
+    $(function(){
+        loginDialogTrigger();
+       
+    });
+</script>
+<style>
+    div#loginDialogTpl{
+        width:300px;
+        height:400px;
+        position:fixed;
+        left:50%;
+        top:50%;
+        margin-left:-150px;
+        margin-top:-200px;
+        transform: inherit;
+    }
+    form.loginTab {
+        padding:15px;
+    }
+    .ucenter_logo img{
+        display:block;
+        width:60px;
+        margin:10px auto 15px;
+    }
+</style>
+</body></html>

@@ -1,0 +1,478 @@
+<!-- 底栏购物菜单 -->
+<template id="footer-menu_tpl">
+    <footer class="f24 ">
+        <div class="group_cart_nav">
+            <a href="javascript:void(0);" v-for="menu in menus" :class="menu.class">
+                {{menu.name}}
+                <!-- 全选 -->
+                <div v-if="menu.class.indexOf('checked_all')!==-1" class="checked_all">
+                    <input type="checkbox" class="check_all" @click="checkAll" id="check_all" v-model="checked" />
+                    <label for="check_all">全选</label>
+                </div>
+                <!-- 总金额 -->
+                <div v-else-if="menu.class.indexOf('amount')!==-1" class="amount">
+                    <span class="total_amount"><span>￥</span>{{ parseFloat(total_amount).toFixed(2) }}</span>
+                </div>
+                <!-- 购物篮 -->
+                <div v-else-if="menu.class.indexOf('add_cart_icon')!==-1" class="add_cart_icon" @click="jump_url" :data-jump_url="menu.action">
+                    <span class="add_num current" v-if="cart_num > 99">99+</span>
+                    <span class="add_num current" v-else-if="cart_num > 0">{{ cart_num }}</span>
+                    <span class="add_num current" v-else></span>
+                </div>
+                <!-- 加入购物车 -->
+                <div v-else-if="menu.class.indexOf('add_cart')!==-1" class="add_cart" @click="addCart" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+                <!-- 立即购买 -->
+                <div v-else-if="menu.class.indexOf('buy_now')!==-1" class="buy_now" @click="addCart" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+                <!-- 结算 -->
+                <div v-else-if="menu.class.indexOf('settlement')!==-1" class="settlement" @click="addCart" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+                <!-- 提交订单/去结算 -->
+                <div v-else-if="menu.class.indexOf('confirm_order')!==-1" class="confirm_order" @click="confirm_order" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+                <!-- 确定收货-->
+                <div v-else-if="menu.class.indexOf('confirm_receive')!==-1" class="confirm_receive" @click="set_order_status" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+                <!-- 评价-->
+                <div v-else-if="menu.class.indexOf('to_evaluate')!==-1" class="to_evaluate" @click="to_evaluate" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+                <!-- 取消订单-->
+                <div v-else-if="menu.class.indexOf('cancel_order')!==-1" class="cancel_order" @click="set_order_status" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+                <!-- 跳转 -->
+                <div v-else-if="menu.class.indexOf('jump_url')!==-1" class="jump_url" @click="jump_url" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+                <!-- 默认 -->
+                <div v-else class="async_login" :data-jump_url="menu.action">
+                    <span class="s_i"></span>
+                </div>
+            </a>
+        </div>
+    </footer>
+</template>
+<script type="text/babel">
+    $(function(){
+        Vue.component('footer-menu', {
+            template:'#footer-menu_tpl',
+            props: {
+                type: {type: Number,default: 1},
+                init_group: {type: Number,default: 1},
+                init_product_type: {type: Number,default: 1},
+                init_cart_num: {type: Number,default: 0},
+                init_total_amount: {type: Number,default: 0},
+                init_checked: {type: Boolean,default: false},
+                init_menus: {
+                    type: Object,
+                    default: function () {
+                        return {}
+                    }
+                },
+                buy_now_call_back: {type: Function,default: function(param){
+                    //console.log(param);
+                }}
+            },data: function () {
+                return {
+                    group:this.init_group,
+                    total_amount:this.init_total_amount,
+                    cart_num:this.init_cart_num,
+                    checked:this.init_checked,
+                    monitor_checked:false,
+                    checkItemList:[],
+                    menus: this.init_menus.menu,
+                    postData:{
+                        product_type:this.init_product_type,
+                        data:[]
+                    }
+                }
+            },methods: {
+                total_amount_init:function (param) {
+                    if(this.type==4 && !param.checked){
+                        return false;
+                    }
+                    this.total_amount += param.subtotal_amount;
+                },total_amount_assign:function (param) {
+                    this.total_amount = param.deal_price * param.increment_buy_quantity;
+                },total_amount_calculate:function (param) {
+                    if(this.type==4 && !param.checked){
+                        return false;
+                    }
+                    this.total_amount += param.deal_price * param.increment_buy_quantity;
+                },total_amount_calculate_with_checked:function (param) {
+                    param.checked
+                            ? this.total_amount += param.subtotal_amount
+                            : this.total_amount -= param.subtotal_amount;
+                    this.total_amount = Math.abs(this.total_amount);
+                },jump_url:function (event) {
+                    let obj = $(event.currentTarget);
+                    let jump_url = obj.data('jump_url');
+                    if(jump_url){
+                        location.href = jump_url;
+                    }
+                },addCart:function(event){
+                    let _thisJquery = $(event.currentTarget);
+                    let _thisVue = this;
+                    login_success_callback_private = function(){
+                        _thisJquery.click()
+                    };
+                    register_success_callback_private = function(){
+                        _thisJquery.click()
+                    };
+//                    console.log(_thisVue.postData);
+//                    return;
+                    //前端验证
+                    if((
+                        (_thisJquery.attr('class')=='add_cart' //加入购物车
+                        ||  _thisJquery.attr('class')=='buy_now' //立即购买
+                        ||  _thisJquery.attr('class')=='settlement' //去结算
+                        ) && !_thisVue.postData.data.length)
+                    ){ //提交商品为空验证
+                        dialog.error('请选择商品！');
+                        return false;
+                    }
+                    let config = {
+                        clickObj:_thisJquery,
+                        postData:_thisVue.postData,
+                        componentFooterCartMenu:_thisVue,
+                        asyncVerifyCallBack:function(){
+//                            location.reload();
+                        }
+                    };
+                    asyncVerify(config);
+                },assignProductList:function(param){
+                    let productInfo = {
+                        'goods_id':param.product_id,
+                        'num':param.buy_quantity
+                    };
+                    if(isPosIntNumber(param.product_id) && isPosIntNumber(param.buy_quantity)){
+                        this.postData.data = [];
+                        this.postData.data.push(productInfo);
+                    }
+                },editProductList:function(param){
+                    if(this.type==4 && !param.checked){
+                        return false;
+                    }
+                    let productInfo = {
+                        'goods_id':param.product_id,
+                        'num':param.buy_quantity
+                    };
+                    //产品是否存在产品列表，默认不存在
+                    let existSign = false;
+                    for(let i = 0,len = this.postData.data.length; i < len; i++){
+                        //产品已存在产品列表，则修改或删除
+                        if(this.postData.data[i]['goods_id'] == param.product_id){
+                            if(param.buy_quantity<=0){
+                                Vue.delete(this.postData.data,i);
+                            }else{
+                                this.postData.data[i]['num'] = param.buy_quantity;
+                            }
+                            existSign = true;
+                            break;
+                        }
+                    }
+                    //产品不存在产品列表，则添加
+                    if(!existSign && isPosIntNumber(param.product_id) && isPosIntNumber(param.buy_quantity)){
+                        this.postData.data.push(productInfo);
+                    }
+                },editProductListWithChecked:function(param){
+                    let productInfo = {
+                        'goods_id':param.product_id,
+                        'num':param.buy_quantity
+                    };
+                    let existSign = false;
+                    for(let i = 0,len = this.postData.data.length; i < len; i++){
+                        if(this.postData.data[i]['goods_id'] == param.product_id){
+                            if(!param.checked){
+                                Vue.delete(this.postData.data,i);
+                            }
+                            existSign = true;
+                            break;
+                        }
+                    }
+                    //产品不存在产品列表，则添加
+                    if(!existSign && param.checked && isPosIntNumber(param.product_id) && isPosIntNumber(param.buy_quantity)){
+                        this.postData.data.push(productInfo);
+                    }
+                },editCheckItemList:function(param){
+                    let tmp = {
+                        product_id:param.product_id,
+                        checked:param.checked
+                    };
+                    let find = false;
+                    for(let i = 0,len = this.checkItemList.length; i < len; i++){
+                        if(this.checkItemList[i].product_id == param.product_id){
+                            if(param.checked_operation_type=='delete'){ //删除选择状态
+                                Vue.delete(this.checkItemList,i);
+                            }else if(param.checked_operation_type=='edit'){ //修改选择状态
+                                this.checkItemList[i].checked = param.checked;
+                                find = true;
+                                break;
+                            }
+                        }
+                    }
+                    if(!find){
+                        this.checkItemList.push(tmp);
+                    }
+                    this.editCheckAll(param);
+                },editCheckAll:function(param){
+                    if(param.checked_operation_type=='edit'){ //修改选择状态
+                        this.checked = true;
+                        for(let i = 0,len = this.checkItemList.length; i < len; i++){
+                            if(!this.checkItemList[i].checked){
+                                this.checked = false;
+                                break;
+                            }
+                        }
+                    }
+                },checkAll:function(){
+                    this.monitor_checked = true;
+                },confirm_order:function(event){
+                    let _thisJquery = $(event.currentTarget);
+                    let _thisVue = this;
+                    login_success_callback_private = function(){
+                        _thisJquery.click()
+                    };
+                    register_success_callback_private = function(){
+                        _thisJquery.click()
+                    };
+                    _thisVue.postData.order_id = "{$orderInfo.id|default=0}";
+                    _thisVue.postData.order_sn = "{$orderInfo.sn|default=''}";
+                    //前端验证
+                    if( !_thisVue.postData.order_id || !_thisVue.postData.order_sn ){
+                        dialog.error('请选择要提交的订单 ！');
+                        return false;
+                    }
+                    let address = getAddress();
+                    _thisVue.postData.address = JSON.stringify(address);
+                    if( _thisVue.postData.address=='false'){
+                        dialog.error('请选择收货地址 ！');
+                        return false;
+                    }
+                    let config = {
+                        clickObj:_thisJquery,
+                        postData:_thisVue.postData,
+                        componentFooterCartMenu:_thisVue
+                    };
+
+                    asyncVerify(config);
+                },set_order_status:function(event){
+                    let _thisJquery = $(event.currentTarget);
+                    let _thisVue = this;
+                    login_success_callback_private = function(){
+                        _thisJquery.click()
+                    };
+                    register_success_callback_private = function(){
+                        _thisJquery.click()
+                    };
+                    let class_name = _thisJquery.context.className;
+
+                    let content = '确定已收到货 ?';
+                    _thisVue.postData.order_status = 4;
+
+                    if(class_name=='cancel_order'){
+                        content = '确定要取消该订单 ?';
+                        _thisVue.postData.order_status = 6;
+                    }
+
+                    layer.open({
+                        content : content,
+                        btn:['确定','取消'],
+                        end : function(){
+                            return false;
+                        },
+                        yes:function(index){
+                            _thisVue.postData.order_id = "{$orderInfo.id|default=0}";
+                            _thisVue.postData.order_sn = "{$orderInfo.sn|default=''}";
+
+                            //前端验证
+                            if( !_thisVue.postData.order_id || !_thisVue.postData.order_sn ){
+                                dialog.error('请选择要提交的订单 ！');
+                                return false;
+                            }
+
+                            let config = {
+                                clickObj:_thisJquery,
+                                postData:_thisVue.postData,
+                                componentFooterCartMenu:_thisVue
+                            };
+
+                            asyncVerify(config);
+                        }
+                    });
+
+                },to_evaluate:function(event){
+                    let _thisJquery = $(event.currentTarget);
+                    let _thisVue = this;
+                    login_success_callback_private = function(){
+                        _thisJquery.click()
+                    };
+                    register_success_callback_private = function(){
+                        _thisJquery.click()
+                    };
+
+
+                    console.log('这个是评价');
+                    // return false;
+                    let class_name = _thisJquery.context.className;
+
+                    let content = '确定已收到货 ?';
+                    _thisVue.postData.order_status = 4;
+
+                    if(class_name=='cancel_order'){
+                        content = '确定要取消该订单 ?';
+                        _thisVue.postData.order_status = 6;
+                    }
+
+                    layer.open({
+                        content : content,
+                        btn:['确定','取消'],
+                        end : function(){
+                            // return false;
+                        },
+                        yes:function(index){
+                            _thisVue.postData.order_id = "{$orderInfo.id|default=0}";
+                            _thisVue.postData.order_sn = "{$orderInfo.sn|default=''}";
+
+                            //前端验证
+                            if( !_thisVue.postData.order_id || !_thisVue.postData.order_sn ){
+                                dialog.error('请选择要提交的订单 ！');
+                                return false;
+                            }
+
+                            let config = {
+                                clickObj:_thisJquery,
+                                postData:_thisVue.postData,
+                                componentFooterCartMenu:_thisVue
+                            };
+
+                            asyncVerify(config);
+                        }
+                    });
+
+                }
+            },created:function(){
+                let _this = this;
+                //监听-产品选择器初始化-事件
+                bus.$on('product_select_init', function(param){
+                    if(param.group == _this.group){
+                        _this.total_amount_init(param);
+                        _this.editProductList(param);
+                        _this.editCheckItemList(param);
+                    }
+                });
+                //监听-产品选择器复选框改变-事件
+                bus.$on('product_select_check_item_change', function(param){
+                    if(param.group == _this.group){
+                        _this.total_amount_calculate_with_checked(param);
+                        _this.editProductListWithChecked(param);
+                        _this.editCheckItemList(param);
+                    }
+                });
+                //监听-产品选择器购买数量改变-事件
+                bus.$on('product_select_buy_quantity_change', function(param){
+                    if(param.group == _this.group){
+                        _this.total_amount_calculate(param);
+                        _this.editProductList(param);
+                    }
+                });
+                //监听-弹出采购车赋值-事件
+                bus.$on('dialog_cart_assign', function(param){
+                    if(_this.group == 0 && param.group == _this.group){
+                        _this.total_amount_assign(param);
+                        _this.assignProductList(param);
+                    }
+                });
+            },watch: {
+                checked: {
+                    handler(newVal, oldVal) {
+                        if(this.monitor_checked){
+                            for(let i = 0,len = this.checkItemList.length; i < len; i++){
+                                this.checkItemList[i].checked = newVal;
+                            }
+                            this.monitor_checked = false;
+                            //触发-底部购物车全选改变-事件
+                            bus.$emit('footer_cart_check_all_change',newVal);
+                        }
+                    },
+                    deep: false,
+                    immediate: true
+                }
+            }
+        });
+    });
+</script>
+<style lang="less" scoped>
+    .group_btn20{width:20%;}
+    .group_btn25{width:25%;}
+    .group_btn30{width:33.3%;box-sizing: border-box;}
+    .group_btn40{width:40%;}
+    .group_btn50{width:50%;}
+    .group_btn60{width:60%;}
+    .group_btn70{width:70%;}
+    .group_btn75{width:75%;}
+    .group_btn100{width:100%;}
+    .checked_all{
+        color: red;
+        cursor:pointer;
+    }
+    .group_cart_nav a:nth-of-type(1){
+        text-align: left;
+    }
+    .group_cart_nav a:nth-of-type(1) span{
+        margin-left: 4px;
+    }
+    .group_cart_nav a:nth-of-type(2){
+        color: #fff;
+    }
+    .group_cart_nav a:nth-of-type(1) .check_all{
+      margin-left: 10px;
+      font-size: 0.2rem
+
+    }
+    .group_cart_nav a:nth-of-type(3),
+    .group_cart_nav a.confirm_order{
+        background: #009fe9;
+        color: #fff;
+    }
+    .group_cart_nav a:nth-of-type(4){
+        background:red;
+        color: #fff;
+    }
+    .add_cart_icon span{
+        left: 40px;
+        font-size: 0.2rem;
+        top: -12px;
+    }
+    .group_cart_nav a.confirm_receive{
+        text-align: center;
+        color: #fff;
+        background: #009fe9;
+    }
+    .group_cart_nav a.to_evaluate{
+        text-align: center;
+        color: #fff;
+        background: #009fe9;
+    }
+    .group_cart_nav a.cancel_order{
+        text-align: center;
+        color: #fff;
+        background: #b5b5b5;
+    }
+    .add_num.current{
+        -webkit-animation:none;
+    }
+    .total_amount{
+        font-size: 0.4rem;
+    }
+    .total_amount span{
+        font-size: 0.2rem;
+    }
+</style>
